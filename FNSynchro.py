@@ -1,4 +1,4 @@
-import os, commands, logging
+import os, commands, logging, time
 from configobj import ConfigObj
 from optparse import OptionParser
 
@@ -36,7 +36,7 @@ class initConfig:
         """
         config = ConfigObj(cfg_file)
         if object not in [ None, '', 'all']:
-            sections = ['general', object]
+            sections = ['system','general', object]
         else:
             sections = config.sections
         foo = {}
@@ -46,6 +46,11 @@ class initConfig:
                 general = {}
                 for def_key in bar.iterkeys():
                     general[def_key] = bar.get(def_key)
+            elif section == 'system':
+                global system
+                system = {}
+                for def_key in bar.iterkeys():
+                    system[def_key] = bar.get(def_key)
             else:
                 foo[section] = {}
                 foo[section]['pattern'] = []
@@ -108,6 +113,48 @@ class initConfig:
         options = self.parse_cli(argv)
         return self.parse_ini(options.config, options.object)
 
+class lock:
+
+    def __init__(self,system):
+        self.lock_file = system['lock_file']
+        self.wait_time = system['wait_time']
+        self.wait_maxtime = system['wait_maxtime']
+
+    def get_pid(self):
+        return os.getpid()
+
+    def get_lock(self):
+        lockf = open(self.lock_file,'r')
+        return lockf.read()
+
+    def lock(self):
+        pid = self.get_pid()
+        lockf = open(self.lock_file,'w')
+        lockf.write(str(pid))
+        lockf.close()
+
+    def unlock(self):
+        if os.path.isfile(self.lock_file):
+            os.remove(self.lock_file)
+
+    def check(self):
+        count = 1
+        countmax = int(self.wait_maxtime)/int(self.wait_time)
+        while os.path.isfile(self.lock_file):
+            if count <= countmax:
+                break
+            lock_pid = self.get_lock()
+            cmd = "ps aux|grep %s | grep FNSynchro.py | wc -l" %lock_pid
+            print cmd
+            running_pids = commands.getoutput(cmd) 
+            if int(running_pids) != 1:
+                log.info("removing stale lock file")
+                break
+            else:
+                time.sleep()
+                count = count + 1
+        self.unlock()
+
 #rsyn wrapper
 def rsync(src,dst,filters=[]):
     """ 
@@ -132,7 +179,6 @@ def rsync(src,dst,filters=[]):
             return True
     return False
 
-    
 #generate the filters
 def filter_gen(npattern,ipath=[],filter=''):
     """
@@ -171,8 +217,41 @@ def sync(config):
         filters = filters + "--filter='+ **%s' " % os.path.dirname(exception)
     return rsync(config['src'],config['dst'],filters)
 
+class access():
+    CO = ['Music', 'Documents', 'A_Posteriori']
+    def walktree (top = ".", depthfirst = True, hidden = False, dir_only = False):
+        names = os.listdir(top)
+        if not depthfirst:
+            yield top, names
+        for name in names:
+            try:
+                if not hidden and name.startswith('.'):
+                    continue
+                st = os.lstat(os.path.join(top, name))
+            except os.error:
+                continue
+            if stat.S_ISDIR(st.st_mode):
+                if dir_only:
+                    yield top, names
+                for (newtop, children) in walktree (os.path.join(top, name), depthfirst):
+                    yield newtop, children
+        if depthfirst:
+            yield top, names
+
+    def access_locations_list():
+        for (basepath, children) in self.walktree("/home/rhanna/",False):
+            for child in children:
+                curdir = os.path.join(basepath, child)
+                if child in CO:
+                    print 'create htaccess in %s' % curdir
 #main
 cfg = initConfig()
 configs = cfg.get_config()
+l = lock(system)
+l.check()
+l.lock()
 for config in configs.keys():
-    sync(configs[config])
+    print configs[config]['pattern']
+#    if not sync(configs[config]):
+#        log.error('sync failed')
+l.unlock

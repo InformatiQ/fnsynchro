@@ -1,4 +1,5 @@
 import os, commands, logging, time
+import stat
 from configobj import ConfigObj
 from optparse import OptionParser
 
@@ -234,7 +235,7 @@ class htaccess:
         #    if str(co) !=  'Unknown' or str(co).startswith('*'):
         #        self.CO.append(str(co))
         # end
-        CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
+        self.CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
         print config
         self.pattern = config['pattern']
         self.config = config
@@ -296,8 +297,8 @@ class htaccess:
                    for subdir in ['source', 'binary']:
                        if os.path.exists(os.path.join(curdir,sub)):
                            H.create_htaccess(curdir, 'fremantle', sub, child)
-               if config['htaccess_dir']:
-                   if child in config['htaccess_dir']:
+               if self.config['htaccess_dir']:
+                   if child in self.config['htaccess_dir']:
                        H.create_htaccess(curdir, 'fremantle', "images")
 
 #main

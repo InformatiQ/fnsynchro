@@ -217,33 +217,89 @@ def sync(config):
         filters = filters + "--filter='+ **%s' " % os.path.dirname(exception)
     return rsync(config['src'],config['dst'],filters)
 
-class access():
-    CO = ['Music', 'Documents', 'A_Posteriori']
-    def walktree (top = ".", depthfirst = True, hidden = False, dir_only = False):
+class htaccess:
+
+    def __init__(self, config, depthfirst = True, hidden = False, dir_only = True):
+        self.depthfirst = depthfirst
+        self.hidden = hidden
+        self.dir_only = dir_only
+        ## only works on nekta
+        #from optparse import OptionParser
+        #os.environ['DJANGO_SETTINGS_MODULE'] = 'pdbv2db.settings'
+        #from pdbv2db.db.models import Source
+        #from pdbv2db.db.models import Copyright
+        #colist = Copyright.objects.filter(source__component__project__product__name='fremantle').distinct()
+        #self.CO = []
+        #for co in colist:
+        #    if str(co) !=  'Unknown' or str(co).startswith('*'):
+        #        self.CO.append(str(co))
+        # end
+        CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
+        print config
+        self.pattern = config['pattern']
+        self.config = config
+
+    def __walktree (self, top, depthfirst = True):
         names = os.listdir(top)
         if not depthfirst:
             yield top, names
         for name in names:
             try:
-                if not hidden and name.startswith('.'):
+                if not self.hidden and name.startswith('.'):
                     continue
                 st = os.lstat(os.path.join(top, name))
             except os.error:
                 continue
             if stat.S_ISDIR(st.st_mode):
-                if dir_only:
+                if not self.dir_only:
                     yield top, names
-                for (newtop, children) in walktree (os.path.join(top, name), depthfirst):
+                for (newtop, children) in self.__walktree (os.path.join(top, name), depthfirst):
                     yield newtop, children
         if depthfirst:
             yield top, names
 
-    def access_locations_list():
-        for (basepath, children) in self.walktree("/home/rhanna/",False):
+    def walktree(self):
+        for top in self.pattern[0]:
+            top = os.path.join(self.config['src'],top)
+            return self.__walktree(top, self.depthfirst)
+
+    def create_htaccess(self, path, product, type, CO = None ):
+        ldapserver = 'localhost'
+        base = """AuthType                    basic
+        AuthName                    "OSSO External Repository"
+        AuthBasicProvider           ldap
+        AuthLDAPGroupAttribute      memberUid
+        AuthLDAPGroupAttributeIsDN  off
+        AuthLDAPURL             ldap://%s/dc=osso?uid?sub?(employeeType=active)
+        """ %ldapserver
+        #generate group attributes 
+        #type:[binary,source,images], CO:copyright-owner
+        group = "cn=repo"
+        if type:
+            group = group + "_%s" %type
+        if type != "images" and CO:
+            group = group + "_%s" %CO
+        require = "require ldap-group " + group + ",ou=%s," %product + "ou=products,ou=groups,dc=osso"
+        #htaccess_file = open(%os.path.join(path,type,.'htaccess'), 'w')
+        #htaccess.write(base)
+        #htaccess.write(require)
+        #htaccess.close()
+        print "create htaccess in: " + os.path.join(path,type,'.htaccess')
+        print require
+
+
+    def doit(self):
+        for (basepath, children) in self.walktree():
             for child in children:
-                curdir = os.path.join(basepath, child)
-                if child in CO:
-                    print 'create htaccess in %s' % curdir
+               curdir = os.path.join(basepath, child)
+               if child in self.CO:
+                   for subdir in ['source', 'binary']:
+                       if os.path.exists(os.path.join(curdir,sub)):
+                           H.create_htaccess(curdir, 'fremantle', sub, child)
+               if config['htaccess_dir']:
+                   if child in config['htaccess_dir']:
+                       H.create_htaccess(curdir, 'fremantle', "images")
+
 #main
 cfg = initConfig()
 configs = cfg.get_config()
@@ -252,6 +308,9 @@ l.check()
 l.lock()
 for config in configs.keys():
     print configs[config]['pattern']
-#    if not sync(configs[config]):
-#        log.error('sync failed')
+    H = htaccess(configs[config])
+    if not H.doit():
+        log.error('create htaccess failed')
+    if not sync(configs[config]):
+        log.error('sync failed')
 l.unlock

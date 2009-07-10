@@ -4,7 +4,7 @@ from configobj import ConfigObj
 from optparse import OptionParser
 
 log = logging.getLogger("FNSynchro")
-hdlr = logging.FileHandler('/var/log/FNSynchro/FNSynchro.log')
+hdlr = logging.FileHandler('/var/log/FNSynchro.log')
 FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
 formatter = logging.Formatter(FORMAT)
 logging.basicConfig(format=FORMAT) # log sur console
@@ -146,7 +146,6 @@ class lock:
                 break
             lock_pid = self.get_lock()
             cmd = "ps aux|grep %s | grep FNSynchro.py | wc -l" %lock_pid
-            print cmd
             running_pids = commands.getoutput(cmd) 
             if int(running_pids) != 1:
                 log.info("removing stale lock file")
@@ -169,6 +168,7 @@ def rsync(src,dst,filters=[]):
     """
     count = 0
     cmd = "rsync -e ssh -rLptn --delete --delete-after --inplace %s %s %s" % (filters, src, dst)
+    print cmd
     log.info(cmd)
     status = -1
     while status not in [None, 0] and count < 3:
@@ -236,7 +236,6 @@ class htaccess:
         #        self.CO.append(str(co))
         # end
         self.CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
-        print config
         self.pattern = config['pattern']
         self.config = config
 
@@ -281,10 +280,10 @@ class htaccess:
         if type != "images" and CO:
             group = group + "_%s" %CO
         require = "require ldap-group " + group + ",ou=%s," %product + "ou=products,ou=groups,dc=osso"
-        #htaccess_file = open(%os.path.join(path,type,.'htaccess'), 'w')
-        #htaccess.write(base)
-        #htaccess.write(require)
-        #htaccess.close()
+        #htaccess_file = open(%os.path.join(path,type,'.htaccess'), 'w')
+        #htaccess_file.write(base)
+        #htaccess_file.write(require)
+        #htaccess_file.close()
         print "create htaccess in: " + os.path.join(path,type,'.htaccess')
         print require
 
@@ -295,9 +294,9 @@ class htaccess:
                curdir = os.path.join(basepath, child)
                if child in self.CO:
                    for subdir in ['source', 'binary']:
-                       if os.path.exists(os.path.join(curdir,sub)):
-                           H.create_htaccess(curdir, 'fremantle', sub, child)
-               if self.config['htaccess_dir']:
+                       if os.path.exists(os.path.join(curdir,subdir)):
+                           H.create_htaccess(curdir, 'fremantle', subdir, child)
+               if self.config.has_key('htaccess_dir'):
                    if child in self.config['htaccess_dir']:
                        H.create_htaccess(curdir, 'fremantle', "images")
 
@@ -308,10 +307,12 @@ l = lock(system)
 l.check()
 l.lock()
 for config in configs.keys():
-    print configs[config]['pattern']
     H = htaccess(configs[config])
     if not H.doit():
         log.error('create htaccess failed')
+    print "########################"
+    print "    htaccess done"
+    print "########################"
     if not sync(configs[config]):
         log.error('sync failed')
 l.unlock

@@ -35,6 +35,7 @@ class initConfig:
         returns
             dict(foo): describing the backup objects 
         """
+        print "object = ", object
         config = ConfigObj(cfg_file)
         if object not in [ None, '', 'all']:
             sections = ['system','general', object]
@@ -167,7 +168,7 @@ def rsync(src,dst,filters=[]):
         Bool
     """
     count = 0
-    cmd = "rsync -e ssh -rLptn --delete --delete-after --inplace %s %s %s" % (filters, src, dst)
+    cmd = "rsync -rLpt --delete --delete-after --inplace %s %s %s" % (filters, src, dst)
     print cmd
     log.info(cmd)
     status = -1
@@ -260,8 +261,9 @@ class htaccess:
 
     def walktree(self):
         for top in self.pattern[0]:
-            top = os.path.join(self.config['src'],top)
-            return self.__walktree(top, self.depthfirst)
+            for lower in self.pattern[1]:
+                top = os.path.join(self.config['src'],top,lower)
+                return self.__walktree(top, self.depthfirst)
 
     def create_htaccess(self, path, product, type, CO = None ):
         ldapserver = 'localhost'
@@ -280,12 +282,13 @@ class htaccess:
         if type != "images" and CO:
             group = group + "_%s" %CO
         require = "require ldap-group " + group + ",ou=%s," %product + "ou=products,ou=groups,dc=osso"
-        #htaccess_file = open(%os.path.join(path,type,'.htaccess'), 'w')
-        #htaccess_file.write(base)
-        #htaccess_file.write(require)
-        #htaccess_file.close()
-        print "create htaccess in: " + os.path.join(path,type,'.htaccess')
-        print require
+        if os.path.isdir(os.path.join(path,type)):
+            htaccess_file = open(os.path.join(path,type,'.htaccess'), 'w')
+            htaccess_file.write(base)
+            htaccess_file.write(require)
+            htaccess_file.close()
+        #print "create htaccess in: " + os.path.join(path,type,'.htaccess')
+        #print require
 
 
     def doit(self):
@@ -295,10 +298,13 @@ class htaccess:
                if child in self.CO:
                    for subdir in ['source', 'binary']:
                        if os.path.exists(os.path.join(curdir,subdir)):
-                           H.create_htaccess(curdir, 'fremantle', subdir, child)
+                           print os.path.join(curdir,subdir)+'.htaccess'
+                           #H.create_htaccess(curdir, 'fremantle', subdir, child)
                if self.config.has_key('htaccess_dir'):
+                   print self.config.has_key('htaccess_dir')
                    if child in self.config['htaccess_dir']:
-                       H.create_htaccess(curdir, 'fremantle', "images")
+                       print os.path.join(curdir,subdir)+'.htaccess'
+                       #H.create_htaccess(curdir, 'fremantle', "images")
 
 #main
 cfg = initConfig()
@@ -307,12 +313,16 @@ l = lock(system)
 l.check()
 l.lock()
 for config in configs.keys():
+    print "    htaccess start"
     H = htaccess(configs[config])
     if not H.doit():
         log.error('create htaccess failed')
     print "########################"
     print "    htaccess done"
     print "########################"
+    print "    sync start"
     if not sync(configs[config]):
-        log.error('sync failed')
+    	log.error('sync failed')
+    print "########################"
+    print "    htaccess done"
 l.unlock

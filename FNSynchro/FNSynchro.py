@@ -1,15 +1,16 @@
 import os, commands, logging, time
+import re
 import stat
 from configobj import ConfigObj
 from optparse import OptionParser
 
 log = logging.getLogger("FNSynchro")
-hdlr = logging.FileHandler('/var/log/FNSynchro.log')
+#hdlr = logging.FileHandler('/var/log/FNSynchro.log')
 FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
 formatter = logging.Formatter(FORMAT)
 logging.basicConfig(format=FORMAT) # log sur console
-hdlr.setFormatter(formatter)
-log.addHandler(hdlr)
+#hdlr.setFormatter(formatter)
+#log.addHandler(hdlr)
 log.setLevel(logging.DEBUG) #set verbosity to show all messages of severity >= DEBUG
 
 class initConfig:
@@ -35,7 +36,6 @@ class initConfig:
         returns
             dict(foo): describing the backup objects 
         """
-        print "object = ", object
         config = ConfigObj(cfg_file)
         if object not in [ None, '', 'all']:
             sections = ['system','general', object]
@@ -43,72 +43,72 @@ class initConfig:
             sections = config.sections
         foo = {}
         for section in sections:
+            log.debug('section = %s' %section)
             bar = config[section]
-            if section == 'general':
-                general = {}
-                for def_key in bar.iterkeys():
-                    general[def_key] = bar.get(def_key)
-            elif section == 'system':
+            if section == 'system':
                 global system
                 system = {}
                 for def_key in bar.iterkeys():
                     system[def_key] = bar.get(def_key)
             else:
                 foo[section] = {}
-                foo[section]['pattern'] = []
-                foo[section]['exceptions'] = []
-                foo[section]['excludes'] = []
-                for pattern_item in bar.get('pattern').split('/'):
-                    if pattern_item.startswith('__'):
-                        if not bar.get(pattern_item[2:]):
-                            foo[section]['pattern'].append(general[pattern_item[2:]])
-                        else:
-                            foo[section]['pattern'].append(bar.get(pattern_item[2:]))
-                    elif pattern_item.startswith(':'):
-                        for exception in bar.get(pattern_item[1:])['exceptions']:
-                            foo[section]['exceptions'].append(os.path.join(pattern_item[1:],exception))
+                for key in bar.keys():
+                    if key == 'pattern' :
+                        log.debug('parsing pattern')
+                        foo[section][key] = []
+                        for pattern_item in bar.get(key).split('/'):
+                            log.debug('parsing pattern item %s' %pattern_item)
+                            if pattern_item.startswith('__'):
+                                if not bar.get(pattern_item[2:]):
+                                    foo[section][key].append(foo['general'][pattern_item[2:]])
+                                else:
+                                    foo[section][key].append(bar.get(pattern_item[2:]))
+                            elif pattern_item.startswith(':'):
+                                foo[section]['exceptions'] = []
+                                for exception in bar.get(pattern_item[1:])['exceptions']:
+                                    foo[section]['exceptions'].append(os.path.join(pattern_item[1:],exception))
+                            else:
+                                foo[section][key].append([pattern_item])
+                    elif key in ['src', 'dst', 'base_src', 'base_dst']:
+                        log.debug('parsing %s' %key)
+                        path_value = ''
+                        val = bar.get(key)
+                        log.debug('key value is %s' %val)
+                        for item in val.split('/'):
+                            log.debug('going through %s' %item)
+                            if item.startswith('__'):
+                                log.debug('value is a reference to %s' %bar.get(item[2:]))
+                                if not bar.get(item[2:]):
+                                    log.debug('key reference not found in section, look at it in general')
+                                    path_value = os.path.join(path_value,foo['general'][item[2:]])
+                                else:
+                                    path_value = os.path.join(path_value,bar.get(item[2:]))
+                            else:
+                                path_value = os.path.join(path_value,item)
+                        log.debug('%s value is %s' %(key,path_value))
+                        foo[section][key] = path_value
                     else:
-                        foo[section]['pattern'].append([pattern_item])
-                if bar.get('excludes'):
-                    for exclude_item in bar.get('excludes'):
-                        if exclude_item.startswith('__'):
-                            foo[section]['excludes'].append(bar.get(exclude_item[2:]))
+                        foo[section][key] = []
+                        for item in bar.get(key):
+                            if item.startswith('__'):
+                                if not bar.get(item[2:]):
+                                    foo[section][key].append(foo['general'][pattern_item[2:]])
+                                else:
+                                    foo[section][key].append(bar.get(item[2:]))
+                            else:
+                                foo[section][key].append(item)
+                        if section != 'general' and foo['general'].get(key):
+                            foo[section][key].append(foo['general'][key])
+                if section != 'general':
+                    log.debug('appending general stuff')
+                    for key in foo['general'].keys():
+                        if foo[section].get(key):
+                            log.debug('there is the same in that section, value from general will be appended')
+                            foo[section][key].append(foo['general'][key])
                         else:
-                            foo[section]['excludes'].append(exclude_item)
-                    if general['excludes']:
-                        foo[section]['excludes'].append(general['excludes'])
-                else:
-                    foo[section]['excludes'].extend(general['excludes'])
-                src = ''
-                if bar.get('src'):
-                    src_val = bar.get('src')
-                else:
-                    src_val = general['src']
-                for src_item in src_val.split('/'):
-                    if src_item.startswith('__'):
-                        if not bar.get(src_item[2:]):
-                            src = os.path.join(src,general[src_item[2:]])
-                        else:
-                            src = os.path.join(src,bar.get(src_item[2:]))
-                    else:
-                        src = os.path.join(src,src_item)
-                foo[section]['src'] = src
-                dst = ''
-                if bar.get('dst'):
-                    dst_val = bar.get('dst')
-                else:
-                    dst_val = general['dst']
-                for dst_item in dst_val.split('/'):
-                    if dst_item.startswith('__'):
-                        if not bar.get(dst_item[2:]):
-                            dst = os.path.join(dst,general[dst_item[2:]])
-                        else:
-                            dst = os.path.join(dst,bar.get(dst_item[2:]))
-                        #foo[section]['dst'].append(bar.get(dst_item[2:]))
-                    else:
-                        #foo[section]['dst'].append(dst_item)
-                        dst = os.path.join(dst_item,dst)
-                foo[section]['dst'] = dst
+                            log.debug('only available in general')
+                            foo[section][key] = foo['general'][key]
+                            log.debug(foo[section][key])
         return foo
 
     def get_config(self, argv=None):
@@ -169,7 +169,6 @@ def rsync(src,dst,filters=[]):
     """
     count = 0
     cmd = "rsync -rLpt --delete --delete-after --inplace %s %s %s" % (filters, src, dst)
-    print cmd
     log.info(cmd)
     status = -1
     while status not in [None, 0] and count < 3:
@@ -225,20 +224,35 @@ class htaccess:
         self.depthfirst = depthfirst
         self.hidden = hidden
         self.dir_only = dir_only
+        self.product = config['product'][0]
         ## only works on nekta
         #from optparse import OptionParser
         #os.environ['DJANGO_SETTINGS_MODULE'] = 'pdbv2db.settings'
         #from pdbv2db.db.models import Source
         #from pdbv2db.db.models import Copyright
-        #colist = Copyright.objects.filter(source__component__project__product__name='fremantle').distinct()
+        #colist = Copyright.objects.filter(source__component__project__product__name=product).distinct()
         #self.CO = []
         #for co in colist:
         #    if str(co) !=  'Unknown' or str(co).startswith('*'):
         #        self.CO.append(str(co))
-        # end
+        #end
         self.CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
         self.pattern = config['pattern']
         self.config = config
+
+    def trees_gen(self, npattern, ipath=[], trees=[]):
+        if len(npattern) < 1:
+            return trees
+        if len(ipath) == 0:
+            ipath = ['']
+        sub_list = npattern.pop(0)
+        tmp_ipath = []
+        for old_path in ipath:
+            for item in sub_list:
+                path = os.path.join(old_path,item)
+                trees.append(path)
+                tmp_ipath.append(path)
+        return self.trees_gen(npattern,tmp_ipath,trees)
 
     def __walktree (self, top, depthfirst = True):
         names = os.listdir(top)
@@ -259,13 +273,16 @@ class htaccess:
         if depthfirst:
             yield top, names
 
-    def walktree(self):
-        for top in self.pattern[0]:
-            for lower in self.pattern[1]:
-                top = os.path.join(self.config['src'],top,lower)
-                return self.__walktree(top, self.depthfirst)
+#    def walktree(self):
+#        for top in self.pattern[0]:
+#            for lower in self.pattern[1]:
+#                log.debug(os.path.join(self.config['src'],top,lower))
+#                top = os.path.join(self.config['src'],top,lower)
+#                return self.__walktree(top, self.depthfirst)
 
-    def create_htaccess(self, path, product, type, CO = None ):
+        
+
+    def create_htaccess(self, path, product, type, CO = None):
         ldapserver = 'localhost'
         base = """AuthType                    basic
         AuthName                    "OSSO External Repository"
@@ -282,29 +299,39 @@ class htaccess:
         if type != "images" and CO:
             group = group + "_%s" %CO
         require = "require ldap-group " + group + ",ou=%s," %product + "ou=products,ou=groups,dc=osso"
-        if os.path.isdir(os.path.join(path,type)):
-            htaccess_file = open(os.path.join(path,type,'.htaccess'), 'w')
-            htaccess_file.write(base)
-            htaccess_file.write(require)
-            htaccess_file.close()
-        #print "create htaccess in: " + os.path.join(path,type,'.htaccess')
-        #print require
+        #htaccess_file = open(os.path.join(path,type,'.htaccess'), 'w')
+        #htaccess_file.write(base)
+        #htaccess_file.write(require)
+        #htaccess_file.close()
+        print "create htaccess in: " + os.path.join(path,type,'.htaccess')
+        print require
 
 
     def doit(self):
-        for (basepath, children) in self.walktree():
+        pat = re.compile(r'(binary|source).*')
+        trees = self.trees_gen(self.pattern)
+        for tree in trees:
+            path = os.path.join(self.config['src'], tree)
+            children = os.listdir(path)
             for child in children:
-               curdir = os.path.join(basepath, child)
-               if child in self.CO:
-                   for subdir in ['source', 'binary']:
-                       if os.path.exists(os.path.join(curdir,subdir)):
-                           print os.path.join(curdir,subdir)+'.htaccess'
-                           #H.create_htaccess(curdir, 'fremantle', subdir, child)
-               if self.config.has_key('htaccess_dir'):
-                   print self.config.has_key('htaccess_dir')
-                   if child in self.config['htaccess_dir']:
-                       print os.path.join(curdir,subdir)+'.htaccess'
-                       #H.create_htaccess(curdir, 'fremantle', "images")
+                curdir = os.path.join(path, child)
+                if child in self.CO:
+                    log.debug('child is a CO')
+                    for child_sub in os.listdir(curdir):
+                        _path = None
+                        if child_sub.startswith('binary'):
+                            type = 'binary'
+                            _path = os.path.join(curdir,type)
+                        elif child_sub.startswith('source'):
+                            type = 'source'
+                            _path = os.path.join(curdir,type)
+                        if _path and os.path.exists(_path):
+                            H.create_htaccess(curdir, self.product, type, child)
+                if os.path.isdir(curdir):
+                    if self.config.has_key('htaccess_dir'):
+                        if child in self.config['htaccess_dir'][0]:
+                            H.create_htaccess(curdir, self.product, "images")
+        return True
 
 #main
 cfg = initConfig()
@@ -313,16 +340,17 @@ l = lock(system)
 l.check()
 l.lock()
 for config in configs.keys():
-    print "    htaccess start"
-    H = htaccess(configs[config])
-    if not H.doit():
-        log.error('create htaccess failed')
-    print "########################"
-    print "    htaccess done"
-    print "########################"
-    print "    sync start"
-    if not sync(configs[config]):
-    	log.error('sync failed')
-    print "########################"
-    print "    htaccess done"
+    if config not in ['general', 'system']: 
+        log.debug('%s = %s' %(config,configs[config]))
+        log.info("start writig htaccess files")
+        H = htaccess(configs[config])
+        if not H.doit():
+            log.error('create htaccess failed')
+        else:
+            log.info("done")
+        log.info("start rsync")
+        if not sync(configs[config]):
+            log.error('rsync failed')
+        else:
+            log.info("done")
 l.unlock

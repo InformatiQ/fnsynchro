@@ -54,14 +54,17 @@ class initConfig:
                 foo[section] = {}
                 for key in bar.keys():
                     if key == 'pattern' :
-                        log.debug('parsing pattern')
+                        log.debug('parsing pattern %s' % bar.get(key))
                         foo[section][key] = []
                         for pattern_item in bar.get(key).split('/'):
                             log.debug('parsing pattern item %s' %pattern_item)
                             if pattern_item.startswith('__'):
+                                log.debug('item is a reference')
                                 if not bar.get(pattern_item[2:]):
+                                    log.debug('reference is in general %s' % foo['general'][pattern_item[2:]])
                                     foo[section][key].append(foo['general'][pattern_item[2:]])
                                 else:
+                                    log.debug('reference is in same section %s' % bar.get(pattern_item[2:]))
                                     foo[section][key].append(bar.get(pattern_item[2:]))
                             elif pattern_item.startswith(':'):
                                 foo[section]['exceptions'] = []
@@ -191,6 +194,8 @@ def filter_gen(npattern,ipath=[],filter=''):
     returns
         str(filters): a string of "--filter=" arguments
     """
+    log.debug('starting filers generation')
+    log.debug('pattern used = %s' % npattern)
     if len(npattern) < 1:
         return filter
     if len(ipath) == 0:
@@ -207,12 +212,14 @@ def filter_gen(npattern,ipath=[],filter=''):
     return filter_gen(npattern,tmp_ipath,filter)
 
 def sync(config):
+    log.debug('config is %s '% config)
     npattern = config['pattern']
     filters = filter_gen(npattern)
+    log.debug('filetrs = %s' % filters)
     if config['excludes']:
         for exclude in config['excludes']:
             filters = filters + "--exclude='%s' " %exclude
-    if len(config['exceptions']) > 0:
+    if config.has_key('exceptions'):
         for exception in config['exceptions']:
             filters = filters + "--filter='+ **%s' " % exception
         filters = filters + "--filter='+ **%s' " % os.path.dirname(exception)
@@ -237,7 +244,7 @@ class htaccess:
         #        self.CO.append(str(co))
         #end
         self.CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
-        self.pattern = config['pattern']
+        self.pattern = list(config['pattern'])
         self.config = config
 
     def trees_gen(self, npattern, ipath=[], trees=[]):
@@ -272,15 +279,6 @@ class htaccess:
                     yield newtop, children
         if depthfirst:
             yield top, names
-
-#    def walktree(self):
-#        for top in self.pattern[0]:
-#            for lower in self.pattern[1]:
-#                log.debug(os.path.join(self.config['src'],top,lower))
-#                top = os.path.join(self.config['src'],top,lower)
-#                return self.__walktree(top, self.depthfirst)
-
-        
 
     def create_htaccess(self, path, product, type, CO = None):
         ldapserver = 'localhost'

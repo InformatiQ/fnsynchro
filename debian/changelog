@@ -1,3 +1,9 @@
+fnsynchro (0.1-4) unstable; urgency=low
+
+  * fix seeting loglevel
+
+ -- Ramez Hanna <ramez.hanna@nokia.com>  Thu, 16 Jul 2009 17:00:02 +0300
+
 fnsynchro (0.1-3) unstable; urgency=low
 
   * add debug option

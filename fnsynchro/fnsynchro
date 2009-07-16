@@ -36,6 +36,14 @@ import stat
 from configobj import ConfigObj
 from optparse import OptionParser
 
+log = logging.getLogger("fnsynchro")
+#hdlr = logging.FileHandler('/var/log/fnsynchro.log')
+FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
+formatter = logging.Formatter(FORMAT)
+logging.basicConfig(format=FORMAT) # log sur console
+#hdlr.setFormatter(formatter)
+#log.addHandler(hdlr)
+
 class initConfig:
     def parse_cli(self,argv):
         """ Commandline parser """
@@ -47,14 +55,14 @@ class initConfig:
         parser.add_option('--object', type='string', dest='object', metavar='object',
                help='sync object, default=all')
 
-        parser.add_option"-D", "--debug", action="store_true", dest="debug", default=False,
+        parser.add_option("-D", "--debug", action="store_true", dest="debug", default=False,
                help="don't print status messages to stdout")
 
         (opts, _) = parser.parse_args(argv)
 
         return opts
 
-    def parse_ini(self, cfg_file='/etc/fnsynchro/fnsynchro.ini', object='all'):
+    def parse_ini(self, options):
         """
         This is the configuration parser, it parses /etc/fnsynchro/fnsynchro.ini or any other file passed to the cli.
         accepts
@@ -369,14 +377,7 @@ class htaccess:
 cfg = initConfig()
 configs = cfg.get_config()
 
-log = logging.getLogger("fnsynchro")
-#hdlr = logging.FileHandler('/var/log/fnsynchro.log')
-FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
-formatter = logging.Formatter(FORMAT)
-logging.basicConfig(format=FORMAT) # log sur console
-#hdlr.setFormatter(formatter)
-#log.addHandler(hdlr)
-if system['debug'] == true:
+if system['debug'] == True:
     loglevel = logging.DEBUG
 else:
     loglevel = logging.ERROR

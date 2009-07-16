@@ -1,0 +1,12 @@
+Source: fnsynchro
+Section: utils
+Priority: extra
+Maintainer: Ramez Hanna <ramez.hanna@nokia.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: fnsynchro
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>

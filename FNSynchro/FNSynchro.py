@@ -11,7 +11,7 @@ formatter = logging.Formatter(FORMAT)
 logging.basicConfig(format=FORMAT) # log sur console
 #hdlr.setFormatter(formatter)
 #log.addHandler(hdlr)
-log.setLevel(logging.DEBUG) #set verbosity to show all messages of severity >= DEBUG
+log.setLevel(logging.ERROR) #set verbosity to show all messages of severity >= DEBUG
 
 class initConfig:
     def parse_cli(self,argv):
@@ -61,10 +61,8 @@ class initConfig:
                             if pattern_item.startswith('__'):
                                 log.debug('item is a reference')
                                 if not bar.get(pattern_item[2:]):
-                                    log.debug('reference is in general %s' % foo['general'][pattern_item[2:]])
                                     foo[section][key].append(foo['general'][pattern_item[2:]])
                                 else:
-                                    log.debug('reference is in same section %s' % bar.get(pattern_item[2:]))
                                     foo[section][key].append(bar.get(pattern_item[2:]))
                             elif pattern_item.startswith(':'):
                                 foo[section]['exceptions'] = []
@@ -162,7 +160,7 @@ class lock:
 #rsyn wrapper
 def rsync(src,dst,filters=[]):
     """ 
-    Wrapoper around rsync program
+    Wrapper around rsync program
     accepts
         str(src): rsync source
         str(dst): rsync destination
@@ -172,11 +170,11 @@ def rsync(src,dst,filters=[]):
     """
     count = 0
     cmd = "rsync -rLpt --delete --delete-after --inplace %s %s %s" % (filters, src, dst)
-    log.info(cmd)
     status = -1
     while status not in [None, 0] and count < 3:
         status, output = commands.getstatusoutput(cmd)
         if status != 0:
+            log.info(cmd)
             log.error(output)
             count = count+1
         else:
@@ -297,12 +295,15 @@ class htaccess:
         if type != "images" and CO:
             group = group + "_%s" %CO
         require = "require ldap-group " + group + ",ou=%s," %product + "ou=products,ou=groups,dc=osso"
-        #htaccess_file = open(os.path.join(path,type,'.htaccess'), 'w')
-        #htaccess_file.write(base)
-        #htaccess_file.write(require)
-        #htaccess_file.close()
-        print "create htaccess in: " + os.path.join(path,type,'.htaccess')
-        print require
+        if type in ['binary', 'source']:
+            htaccess_path = os.path.join(path,type,'.htaccess')
+        else:
+            htaccess_path = os.path.join(path,'.htaccess')
+        htaccess_file = open(htaccess_path, 'w')
+        htaccess_file.write(base)
+        htaccess_file.write(require)
+        htaccess_file.close()
+        log.debug("create htaccess in: %s" % os.path.join(path,type,'.htaccess'))
 
 
     def doit(self):
@@ -339,7 +340,6 @@ l.check()
 l.lock()
 for config in configs.keys():
     if config not in ['general', 'system']: 
-        log.debug('%s = %s' %(config,configs[config]))
         log.info("start writig htaccess files")
         H = htaccess(configs[config])
         if not H.doit():

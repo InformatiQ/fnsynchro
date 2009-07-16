@@ -1,0 +1,5 @@
+MAILTO="admin@maemo.research.nokia.com"
+00 03 * * *     root    python -tt /home/rhanna/FNSynchro.py --config /home/rhanna/FNSynchro.ini
+*/30 * * * *    root    python -tt /home/rhanna/FNSynchro.py --config /home/rhanna/FNSynchro_projects.ini
+00 * * * *      root    python -tt /home/rhanna/FNSynchro.py --config /home/rhanna/FNSynchro.ini --object fpre
+

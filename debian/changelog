@@ -1,5 +1,11 @@
 fnsynchro (0.1-2) unstable; urgency=low
 
+  * add debug option
+
+ -- Ramez Hanna <ramez.hanna@nokia.com>  Thu, 16 Jul 2009 16:30:02 +0300
+
+fnsynchro (0.1-2) unstable; urgency=low
+
   * add dependencies
 
  -- Ramez Hanna <ramez.hanna@nokia.com>  Thu, 16 Jul 2009 16:00:02 +0300

@@ -9,17 +9,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-
-
-
-CFLAGS = -Wall -g
-
-ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -O0
-else
-	CFLAGS += -O2
-endif
-
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
@@ -32,21 +21,12 @@ build: build-stamp
 
 build-stamp: configure-stamp 
 	dh_testdir
-
-	# Add here commands to compile the package.
-	$(MAKE)
-	#docbook-to-man debian/fnsynchro.sgml > fnsynchro.1
-
-	touch $@
+	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
-
-	# Add here commands to clean up after the build process.
-	-$(MAKE) clean
-
 	dh_clean 
 
 install: build
@@ -56,9 +36,9 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/fnsynchro.
-	$(MAKE) DESTDIR=$(CURDIR)/debian/fnsynchro install
 	install -m 0744 fnsynchro/fnsynchro debian/fnsynchro/usr/bin
 	install -m 0644 etc/fnsynchro/* debian/fnsynchro/etc/fnsynchro
+	install -m 0644 etc/cron.d/fnsynchro debian/fnsynchro/etc/cron.d/fnsynchro
 
 
 # Build architecture-independent files here.
@@ -67,9 +47,9 @@ binary-indep: build install
 
 # Build architecture-dependent files here.
 binary-arch: build install
-	dh_testdir
-	dh_testroot
-	dh_installchangelogs 
+#	dh_testdir
+#	dh_testroot
+#	dh_installchangelogs 
 	dh_installdocs
 	dh_installexamples
 #	dh_install

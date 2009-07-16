@@ -36,38 +36,40 @@ import stat
 from configobj import ConfigObj
 from optparse import OptionParser
 
-log = logging.getLogger("FNSynchro")
-#hdlr = logging.FileHandler('/var/log/FNSynchro.log')
-FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
-formatter = logging.Formatter(FORMAT)
-logging.basicConfig(format=FORMAT) # log sur console
-#hdlr.setFormatter(formatter)
-#log.addHandler(hdlr)
-log.setLevel(logging.ERROR) #set verbosity to show all messages of severity >= DEBUG
-
 class initConfig:
     def parse_cli(self,argv):
         """ Commandline parser """
         parser = OptionParser(usage = '%prog [options]')
         # options
         parser.add_option('--config', type='string', dest='config', metavar='config',
-               help='configuration, default=/etc/FNSynchro/FNSynchro.ini')
+               help='configuration, default=/etc/fnsynchro/fnsynchro.ini')
 
         parser.add_option('--object', type='string', dest='object', metavar='object',
                help='sync object, default=all')
+
+        parser.add_option"-D", "--debug", action="store_true", dest="debug", default=False,
+               help="don't print status messages to stdout")
 
         (opts, _) = parser.parse_args(argv)
 
         return opts
 
-    def parse_ini(self, cfg_file='/etc/FNSynchro/FNSynchro.ini', object='all'):
+    def parse_ini(self, cfg_file='/etc/fnsynchro/fnsynchro.ini', object='all'):
         """
-        This is the configuration parser, it parses /etc/FNSynchro/FNSynchro.ini or any other file passed to the cli.
+        This is the configuration parser, it parses /etc/fnsynchro/fnsynchro.ini or any other file passed to the cli.
         accepts
             cfg_file: file path of the INI file
         returns
             dict(foo): describing the backup objects 
         """
+        if not options.config:
+            cfg_file = '/etc/fnsynchro/fnsynchro.ini'
+        else:
+            cfg_file = options.config
+        if not options.object:
+            object = 'all'
+        else:
+            object = options.object
         config = ConfigObj(cfg_file)
         if object not in [ None, '', 'all']:
             sections = ['system','general', object]
@@ -82,6 +84,7 @@ class initConfig:
                 system = {}
                 for def_key in bar.iterkeys():
                     system[def_key] = bar.get(def_key)
+                system['debug'] = options.debug
             else:
                 foo[section] = {}
                 for key in bar.keys():
@@ -146,7 +149,7 @@ class initConfig:
 
     def get_config(self, argv=None):
         options = self.parse_cli(argv)
-        return self.parse_ini(options.config, options.object)
+        return self.parse_ini(options)
 
 class lock:
 
@@ -179,7 +182,7 @@ class lock:
             if count <= countmax:
                 break
             lock_pid = self.get_lock()
-            cmd = "ps aux|grep %s | grep FNSynchro.py | wc -l" %lock_pid
+            cmd = "ps aux|grep %s | grep fnsnchro | wc -l" %lock_pid
             running_pids = commands.getoutput(cmd) 
             if int(running_pids) != 1:
                 log.info("removing stale lock file")
@@ -266,7 +269,7 @@ class htaccess:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'pdbv2db.settings'
         from pdbv2db.db.models import Source
         from pdbv2db.db.models import Copyright
-        colist = Copyright.objects.filter(source__component__project__product__name=product).distinct()
+        colist = Copyright.objects.filter(source__component__project__product__name=self.product).distinct()
         self.CO = []
         for co in colist:
             if str(co) !=  'Unknown' or str(co).startswith('*'):
@@ -365,6 +368,20 @@ class htaccess:
 #main
 cfg = initConfig()
 configs = cfg.get_config()
+
+log = logging.getLogger("fnsynchro")
+#hdlr = logging.FileHandler('/var/log/fnsynchro.log')
+FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
+formatter = logging.Formatter(FORMAT)
+logging.basicConfig(format=FORMAT) # log sur console
+#hdlr.setFormatter(formatter)
+#log.addHandler(hdlr)
+if system['debug'] == true:
+    loglevel = logging.DEBUG
+else:
+    loglevel = logging.ERROR
+log.setLevel(loglevel) #set verbosity to show all messages of severity >= DEBUG
+
 l = lock(system)
 l.check()
 l.lock()

@@ -1,3 +1,35 @@
+#!/usr/bin/python -tt
+#
+# vim: sw=4 ts=4 expandtab ai
+#
+# This file is part of fnsynchro
+#
+# Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
+#
+# Contact: Stefano Mosconi <stefano.mosconi@nokia.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
+
+'''
+fnsynchro:
+
+Synchronizes files between two servers, based on a pattern defined in the config files.
+it was developed with mameo->fmo in mind but should be generic enough to work with any other topology.
+'''
+
 import os, commands, logging, time
 import re
 import stat

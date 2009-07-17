@@ -215,7 +215,9 @@ def rsync(src,dst,filters=[]):
     cmd = "rsync -rLpt --delete --delete-after --inplace %s %s %s" % (filters, src, dst)
     status = -1
     while status not in [None, 0] and count < 3:
+        log.debug(cmd)
         status, output = commands.getstatusoutput(cmd)
+        log.debug('rsync returned %s %s' % (status, output))
         if status != 0:
             log.info(cmd)
             log.error(output)

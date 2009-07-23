@@ -58,6 +58,9 @@ class initConfig:
         parser.add_option("-D", "--debug", action="store_true", dest="debug", default=False,
                help="don't print status messages to stdout")
 
+        parser.add_option('--notify', type='string', dest='notify', metavar='notify',
+               help='who notify when sync is finished')
+
         (opts, _) = parser.parse_args(argv)
 
         return opts
@@ -157,6 +160,9 @@ class initConfig:
 
     def get_config(self, argv=None):
         options = self.parse_cli(argv)
+        if options.notify:
+            email = options.notify
+            global email
         return self.parse_ini(options)
 
 class lock:
@@ -375,6 +381,20 @@ class htaccess:
                             H.create_htaccess(curdir, self.product, "images")
         return True
 
+
+def notify(recip, status)
+    from smtplib import SMTP
+    from email import encoders
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.base import MIMEBase
+
+    #msg = MIMEMultipart()
+    msg['Subject'] = 'Sync finished and returned status %s' %status
+    me = "admin@maemo.research.nokia.com"
+    mail = smtplib.SMTP('localhost',25)
+    mail.sendmail(me, recip, msg)
+    mail.quit()
+
 #main
 cfg = initConfig()
 configs = cfg.get_config()
@@ -399,6 +419,10 @@ for config in configs.keys():
         log.info("start rsync")
         if not sync(configs[config]):
             log.error('rsync failed')
+            status = "Failed"
         else:
             log.info("done")
+            status = "Success"
+if email:
+    notify(email, status)
 l.unlock

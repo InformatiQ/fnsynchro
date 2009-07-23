@@ -1,0 +1,9 @@
+#! /bin/bash
+file=$1
+[ -e $file ] && . $file
+
+command='/usr/bin/fnsynchro'
+args="--config=$config --object=$object"
+
+$command $args>>/root/adhoc
+rm -rf $file

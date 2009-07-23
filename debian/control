@@ -7,7 +7,7 @@ Standards-Version: 3.7.2
 
 Package: fnsynchro
 Architecture: any
-Depends: ${python:Depends}, python-configobj, python-pdbv2-utils  
+Depends: ${python:Depends}, python-configobj, python-pdbv2-utils, incron
 Description: Synchronizes files between two servers, based on a pattern defined in the config files.
  it was developed with mameo->fmo in mind but should be generic enough to work with any other topology.
 

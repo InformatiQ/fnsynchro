@@ -37,12 +37,12 @@ from configobj import ConfigObj
 from optparse import OptionParser
 
 log = logging.getLogger("fnsynchro")
-#hdlr = logging.FileHandler('/var/log/fnsynchro.log')
+hdlr = logging.FileHandler('/var/log/fnsynchro.log')
 FORMAT='%(asctime)s\t%(levelname)s\t%(message)s'
 formatter = logging.Formatter(FORMAT)
 logging.basicConfig(format=FORMAT) # log sur console
-#hdlr.setFormatter(formatter)
-#log.addHandler(hdlr)
+hdlr.setFormatter(formatter)
+log.addHandler(hdlr)
 
 class initConfig:
     def parse_cli(self,argv):
@@ -217,7 +217,7 @@ def rsync(src,dst,filters=[]):
     while status not in [None, 0] and count < 3:
         log.debug(cmd)
         status, output = commands.getstatusoutput(cmd)
-        log.debug('rsync returned %s %s' % (status, output))
+        log.debug('rsync returned %s %s' %(status, output))
         if status != 0:
             log.info(cmd)
             log.error(output)

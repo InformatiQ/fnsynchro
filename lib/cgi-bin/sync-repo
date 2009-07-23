@@ -42,7 +42,7 @@ PAGE_START="Content-Type: text/html"
 
 """+STYLE+"""
 BODY = """<html><head><title>Synchronization of external repository</title></head>
-<body><h1>Releases synchronization</h1>
+<body><h1>Repo synchronization</h1>
 """
 
 def webform(options):

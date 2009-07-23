@@ -80,9 +80,10 @@ else:
     """
     for key in choices:
         if key not in ["", None] or choices[key] not in ["", None]:
-            data = "config=%s\nobject=%s" % (os.path.join(cfg_path, choices[key]), key)
+            data = "config=%s\nobject=%s\n" % (os.path.join(cfg_path, choices[key]), key)
             t = time.localtime()
             t = time.strftime('%s', t)
             fp = open('/nokia/fnsynchro/sync_%s_%s' % (key, t),'w')
             fp.write(data)
+            fp.write("notify=%s" % os.environ.get('REMOTE_USER'))
             fp.close

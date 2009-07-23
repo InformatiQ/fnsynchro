@@ -5,5 +5,10 @@ file=$1
 command='/usr/bin/fnsynchro'
 args="--config=$config --object=$object"
 
-$command $args>>/root/adhoc
+if [ "$notify" != "" ]; then
+    mail=$(ldapsearch -h nedi -x -b o=Nokia uid=$notify mail|awk '/mail:/ {print $2}')
+    args="$args --notify $mail"
+fi
+
+echo $command $args>>/root/adhoc
 rm -rf $file

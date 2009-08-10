@@ -1,3 +1,9 @@
+fnsynchro (0.2.1) unstable; urgency=low
+
+  * fix bug related to removing stale files
+
+ -- ramez hanna <ramez.hanna@nokia.com>  Mon,  10 Aug 2009 14:46:22 +0300
+
 fnsynchro (0.2) unstable; urgency=low
 
   * add ad-hoc mood

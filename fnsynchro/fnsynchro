@@ -200,11 +200,11 @@ class lock:
             running_pids = commands.getoutput(cmd) 
             if int(running_pids) != 1:
                 log.info("removing stale lock file")
+                self.unlock()
                 break
             else:
                 time.sleep()
                 count = count + 1
-        self.unlock()
 
 #rsyn wrapper
 def rsync(src,dst,filters=[]):

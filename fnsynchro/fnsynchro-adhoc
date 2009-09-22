@@ -10,5 +10,5 @@ if [ "$notify" != "" ]; then
     args="$args --notify $mail"
 fi
 
-echo $command $args>>/root/adhoc
+$command $args>>/root/adhoc
 rm -rf $file

@@ -1,5 +1,5 @@
 MAILTO="admin@maemo.research.nokia.com"
 00 03 * * *     root    /usr/bin/fnsynchro 
 */30 * * * *    root    /usr/bin/fnsynchro --config /etc/fnsynchro/projects.ini
-00 * * * *      root    /usr/bin/fnsynchro --object fpre
+00 * * * *      root    /usr/bin/fnsynchro --object f_pre-release
 

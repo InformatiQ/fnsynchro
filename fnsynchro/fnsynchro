@@ -58,7 +58,7 @@ class initConfig:
         parser.add_option("-D", "--debug", action="store_true", dest="debug", default=False,
                help="don't print status messages to stdout")
 
-        parser.add_option('--notify', type='string', dest='notify', metavar='notify',
+        parser.add_option('--notify', type='string', dest='notify', default=None, metavar='notify',
                help='who notify when sync is finished')
 
         (opts, _) = parser.parse_args(argv)
@@ -160,10 +160,13 @@ class initConfig:
 
     def get_config(self, argv=None):
         options = self.parse_cli(argv)
+        self.email = False
         if options.notify:
-            email = options.notify
-            global email
+            self.email = options.notify
         return self.parse_ini(options)
+
+    def get_email(self):
+        return self.email
 
 class lock:
 
@@ -382,17 +385,22 @@ class htaccess:
         return True
 
 
-def notify(recip, status)
+def notify(recip, status):
     from smtplib import SMTP
-    from email import encoders
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.base import MIMEBase
-
-    #msg = MIMEMultipart()
-    msg['Subject'] = 'Sync finished and returned status %s' %status
+    import string
+    to = [recip]
     me = "admin@maemo.research.nokia.com"
-    mail = smtplib.SMTP('localhost',25)
-    mail.sendmail(me, recip, msg)
+    subject = "Release Sync Finished"
+
+    msg = string.join((
+        "From: maemo sync releases",
+        "To: %s" % recip,
+        "Subject: %s" % subject,
+        "",
+        "Sync finished and returned status %s" % status
+        ), "\r\n")
+    mail = SMTP('localhost',25)
+    mail.sendmail(me, to, msg)
     mail.quit()
 
 #main
@@ -423,6 +431,6 @@ for config in configs.keys():
         else:
             log.info("done")
             status = "Success"
-if email:
-    notify(email, status)
+if cfg.get_email():
+    notify(cfg.get_email(), status)
 l.unlock

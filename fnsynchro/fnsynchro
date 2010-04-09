@@ -285,15 +285,15 @@ class htaccess:
         self.dir_only = dir_only
         self.product = config['product'][0]
         from optparse import OptionParser
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'pdbv2db.settings'
-        from pdbv2db.db.models import Source
-        from pdbv2db.db.models import Copyright
-        colist = Copyright.objects.filter(source__component__project__product__name=self.product).distinct()
-        self.CO = []
-        for co in colist:
-            if str(co) !=  'Unknown' or str(co).startswith('*'):
-                self.CO.append(str(co))
-        #self.CO = ['nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
+        #os.environ['DJANGO_SETTINGS_MODULE'] = 'pdbv2db.settings'
+        #from pdbv2db.db.models import Source
+        #from pdbv2db.db.models import Copyright
+        #colist = Copyright.objects.filter(source__component__project__product__name=self.product).distinct()
+        #self.CO = []
+        #for co in colist:
+        #    if str(co) !=  'Unknown' or str(co).startswith('*'):
+        #        self.CO.append(str(co))
+        self.CO = ['drm', 'nuance', 'nokia-closed', 'modified', 'ossw', 'nokia-open', 'zi', 'hanwang', 'art', 'ti', 'customization', 'real', 'nokia-emc', 'adobe','nokia-maps', 'eff', 'skype']
         self.pattern = list(config['pattern'])
         self.config = config
 

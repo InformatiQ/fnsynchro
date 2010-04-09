@@ -1,3 +1,9 @@
+fnsynchro (0.2.3) unstable; urgency=low
+
+  * Relasin the release. (skipping 0.2.2 that looks problematic)
+
+ -- Stefano Mosconi <stefano.mosconi@nokia.com>  Fri, 09 Apr 2010 18:04:16 +0300
+
 fnsynchro (0.2.1) unstable; urgency=low
 
   * fix bug related to removing stale files

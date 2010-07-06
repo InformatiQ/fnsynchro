@@ -44,6 +44,15 @@ logging.basicConfig(format=FORMAT) # log sur console
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
 
+#Logging ERRORs to console
+#ch = logging.StreamHandler()
+#ch.setLevel(logging.DEBUG)
+#formatter = logging.Formatter('%(levelname)-8s %(message)s')
+# tell the handler to use this format
+#ch.setFormatter(formatter)
+#log.addHandler(ch)
+
+
 class initConfig:
     def parse_cli(self,argv):
         """ Commandline parser """
@@ -270,11 +279,14 @@ def sync(config):
     log.debug('filetrs = %s' % filters)
     if config['excludes']:
         for exclude in config['excludes']:
+            log.debug('excluding %s' % exclude)
             filters = filters + "--exclude='%s' " %exclude
     if config.has_key('exceptions'):
         for exception in config['exceptions']:
             filters = filters + "--filter='+ **%s' " % exception
-        filters = filters + "--filter='+ **%s' " % os.path.dirname(exception)
+            log.debug('including %s' % exception)
+        log.debug("Adding last one --filter='+ **%s' " % os.path.dirname(exception))
+        filters = filters + "--filter='- **%s/*' " % os.path.dirname(exception)
     return rsync(config['src'],config['dst'],filters)
 
 class htaccess:
@@ -411,25 +423,26 @@ if system['debug'] == True:
     loglevel = logging.DEBUG
 else:
     loglevel = logging.ERROR
-log.setLevel(loglevel) #set verbosity to show all messages of severity >= DEBUG
+#ch.setLevel(loglevel) #set verbosity to show all messages of severity >= DEBUG
+log.setLevel(loglevel)
 
 l = lock(system)
 l.check()
 l.lock()
 for config in configs.keys():
     if config not in ['general', 'system']: 
-        log.info("start writig htaccess files")
+        log.info("start writing htaccess files for %s" % config)
         H = htaccess(configs[config])
         if not H.doit():
-            log.error('create htaccess failed')
+            log.error('create htaccess for %s failed' % config)
         else:
-            log.info("done")
-        log.info("start rsync")
+            log.info("htaccess files preparation for %s: done" % config )
+        log.info("start rsync for %s" % config)
         if not sync(configs[config]):
-            log.error('rsync failed')
+            log.error('rsync for %s failed' % config)
             status = "Failed"
         else:
-            log.info("done")
+            log.info("Sync %s: done" % config )
             status = "Success"
 if cfg.get_email():
     notify(cfg.get_email(), status)
